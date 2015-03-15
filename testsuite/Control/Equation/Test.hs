@@ -20,9 +20,9 @@ data Playground = Playground { _sheep :: Int
 makeLenses ''Playground
 
 test_solveLinear = do
-    let equations = [ evar sheep + evar cows =:= econst 10
-                    , evar cows + evar chicken =:= econst 15
-                    , evar chicken + evar sheep =:= econst 20
+    let equations = [ evar sheep + evar cows =:= 10
+                    , evar cows + evar chicken =:= 15
+                    , evar chicken + evar sheep =:= 20
                     ]
 
     -- TODO: the initial state is meaningless
