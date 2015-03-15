@@ -1,6 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
 module Control.Equation (
-    Operand (..),
     Expression (..),
     Equation (..),
     (=:=),
