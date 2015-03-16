@@ -12,9 +12,9 @@ import Test.Framework
 import Test.HUnit
 
 
-data Playground = Playground { _sheep :: Int
-                             , _cows :: Int
-                             , _chicken :: Int
+data Playground = Playground { _sheep :: Float
+                             , _cows :: Float
+                             , _chicken :: Float
                              }
 
 makeLenses ''Playground

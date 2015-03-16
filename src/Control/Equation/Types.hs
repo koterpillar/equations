@@ -2,6 +2,7 @@
 module Control.Equation.Types (
     Expression (..),
     Equation (..),
+    Term (..),
     evar,
     (=:=),
 ) where
@@ -60,7 +61,7 @@ constMul v = Expression . map (opMul v) . unExpression
     where opMul i (Constant j) = Constant $ i * j
           opMul i (Variable j k) = Variable (i * j) k
 
-data Equation world value = Equation (Expression world value)
+data Equation world value = Equation { unEquation :: Expression world value }
 
 (=:=) :: Num value => Expression world value -> Expression world value -> Equation world value
 a =:= b = Equation (a - b)
