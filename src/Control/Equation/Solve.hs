@@ -3,6 +3,7 @@ module Control.Equation.Solve where
 
 import Control.Lens
 import Control.Monad.State
+import Control.Monad.Writer
 
 import Data.List
 import Data.Maybe
@@ -23,7 +24,7 @@ instance (Eq value, Fractional value) => Eq (VarRef world value) where
               va = vrVar a
               vb = vrVar b
 
--- TODO: Assuming all variables are independent; this breaks use cases like:
+-- Assuming all variables are independent; this breaks use cases like:
 -- radius + diameter = 3, where radius and diameter are distinct but dependent
 -- perimeter + area = 10, this is not actually a linear equation at all!
 -- In general, this can't be picked up automatically with any number of checks
@@ -33,14 +34,14 @@ instance (Eq value, Fractional value) => Eq (VarRef world value) where
 -- Extract all the variables from a set of equations
 -- Needs an instance of world to compare, etc.
 extractVars :: (Eq value, Fractional value) => world -> [Equation world value] -> [VarRef world value]
-extractVars w eqs = execState (mapM_ (extractVars' w) eqs >> modify nub) []
+extractVars w = nub . execWriter . mapM_ (extractVars' w)
 
-extractVars' :: world -> Equation world value -> State [VarRef world value] ()
+extractVars' :: world -> Equation world value -> Writer [VarRef world value] ()
 extractVars' w = mapM_ (extractVars'' w) . (^. expression.terms)
 
-extractVars'' :: world -> Term world value -> State [VarRef world value] ()
+extractVars'' :: world -> Term world value -> Writer [VarRef world value] ()
 extractVars'' w (Constant _) = return ()
-extractVars'' w (Variable _ v) = modify (VarRef v w:)
+extractVars'' w (Variable _ v) = tell [VarRef v w]
 
 -- Calculate the total coefficient for the given variable
 -- e.g. coefficient x (x + 2 * x =:= 0) === 3
@@ -95,6 +96,7 @@ findVar (v:vs) eq = case coefficient v eq of
         return $ (v', v:vs)
     _ -> Just (v, vs)
 
+-- Is the variable (Term) the same as a given VarRef?
 sameVar :: (Eq value, Fractional value) => VarRef world value -> Term world value -> Bool
 sameVar v (Constant _) = False
 sameVar v (Variable _ v') = v == VarRef v' (vrWorld v)
