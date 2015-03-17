@@ -1,8 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
-module Control.Equation.Solve (
-    solveLinear,
-    SolutionStatus,
-) where
+module Control.Equation.Solve where
 
 import Control.Lens (Lens', (^.), set, (.=))
 import Control.Monad.State
@@ -32,11 +29,6 @@ instance (Eq value, Fractional value) => Eq (VarRef world value) where
 -- In general, this can't be picked up automatically with any number of checks
 -- because it's possible that a variable is a polynom of the other one of a
 -- high enough power.
-
--- Normalized equation. All the variables and constants are deduplicated
-data NEquation world value = NEquation { neConst :: value
-                                       , neVars :: [(value, VarRef world value)]
-                                       }
 
 -- Extract all the variables from a set of equations
 -- Needs an instance of world to compare, etc.

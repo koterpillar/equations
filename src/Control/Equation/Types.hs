@@ -1,11 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
-module Control.Equation.Types (
-    Expression (..),
-    Equation (..),
-    Term (..),
-    evar,
-    (=:=),
-) where
+module Control.Equation.Types where
 
 import Control.Lens (Lens')
 
@@ -47,8 +41,8 @@ simplify :: Num value => Expression world value -> Expression world value
 simplify (Expression exp) = Expression $ Constant csum:vars
     where vars = filter isVarExp exp
           csum = sum $ catMaybes $ map cvalue $ filter (not . isVarExp) exp
-          isVarExp (Constant _) = True
-          isVarExp _ = False
+          isVarExp (Constant _) = False
+          isVarExp _ = True
 
 constantValue :: Num value => Expression world value -> Maybe value
 constantValue = fmap sum . sequence . map cvalue . unExpression
