@@ -98,15 +98,18 @@ findVar (v:vs) eq = case coefficient v eq of
 econst :: value -> Expression world value
 econst v = Expression [Constant v]
 
+sameVar :: (Eq value, Fractional value) => VarRef world value -> Term world value -> Bool
+sameVar v (Constant _) = False
+sameVar v (Variable _ v') = v == VarRef v' (vrWorld v)
+
 -- For a given equation, an expression that is equal to the value of the given
 -- variable but does not include it
 -- excludeVar x (2 * x + 3 * y =:= 5) = 2.5 - 1.5 * y
 excludeVar :: (Fractional value, Eq value) => VarRef world value -> Equation world value -> Expression world value
-excludeVar v ex = (econst $ (-1) / c) * (Expression $ filter (not . sameVar) $ unExpression $ unEquation ex)
-    where sameVar (Constant _) = False
-          sameVar (Variable _ v') = v == VarRef v' (vrWorld v)
-          c = coefficient v ex
+excludeVar v ex = (econst $ (-1) / c) * (Expression $ filter (not . sameVar v) $ unExpression $ unEquation ex)
+    where c = coefficient v ex
 
 -- Replace all occurrences of a variable with an expression
-replaceVar :: VarRef world value -> Expression world value -> Equation world value -> Equation world value
-replaceVar = undefined
+replaceVar :: (Fractional value, Eq value) => VarRef world value -> Expression world value -> Equation world value -> Equation world value
+replaceVar v replacement ex = Equation $ ((econst c * replacement) +) $ Expression $ filter (not . sameVar v) $ unExpression $ unEquation ex
+    where c = coefficient v ex
