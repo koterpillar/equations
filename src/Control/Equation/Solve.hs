@@ -1,7 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 module Control.Equation.Solve where
 
-import Control.Lens (Lens', (^.), set, (.=))
+import Control.Lens
 import Control.Monad.State
 
 import Data.List
@@ -36,7 +36,7 @@ extractVars :: (Eq value, Fractional value) => world -> [Equation world value] -
 extractVars w eqs = execState (mapM_ (extractVars' w) eqs >> modify nub) []
 
 extractVars' :: world -> Equation world value -> State [VarRef world value] ()
-extractVars' w = mapM_ (extractVars'' w) . unExpression . unEquation
+extractVars' w = mapM_ (extractVars'' w) . (^. expression.terms)
 
 extractVars'' :: world -> Term world value -> State [VarRef world value] ()
 extractVars'' w (Constant _) = return ()
@@ -46,7 +46,7 @@ extractVars'' w (Variable _ v) = modify (VarRef v w:)
 -- e.g. coefficient x (x + 2 * x =:= 0) === 3
 coefficient :: Fractional value => VarRef world value -> Equation world value -> value
 coefficient var eq = value w2 ex - value w1 ex
-    where ex = unEquation eq
+    where ex = eq ^. expression
           w1 = set v 1 w
           w2 = set v 2 w
           v = vrVar var
@@ -54,7 +54,7 @@ coefficient var eq = value w2 ex - value w1 ex
 
 -- Calculate the value of an expression given the world
 value :: Fractional value => world -> Expression world value -> value
-value w = sum . map (termValue w) . unExpression
+value w = sum . map (termValue w) . (^. terms)
     where termValue _ (Constant c) = c
           termValue w (Variable c v) = c * w ^. v
 
@@ -74,7 +74,7 @@ solveAgainst vs (eq:eqs) = do
     case findVar vs eq of
         Nothing -> do
             -- No variables in this equation. Is it 0=0 or 0=1?
-            val <- gets $ flip value (unEquation eq)
+            val <- gets $ flip value (eq ^. expression)
             if (val == 0) then solveAgainst vs eqs
                           else return NoSolutions
         Just (v, vs') -> do
@@ -95,9 +95,6 @@ findVar (v:vs) eq = case coefficient v eq of
         return $ (v', v:vs)
     _ -> Just (v, vs)
 
-econst :: value -> Expression world value
-econst v = Expression [Constant v]
-
 sameVar :: (Eq value, Fractional value) => VarRef world value -> Term world value -> Bool
 sameVar v (Constant _) = False
 sameVar v (Variable _ v') = v == VarRef v' (vrWorld v)
@@ -106,10 +103,11 @@ sameVar v (Variable _ v') = v == VarRef v' (vrWorld v)
 -- variable but does not include it
 -- excludeVar x (2 * x + 3 * y =:= 5) = 2.5 - 1.5 * y
 excludeVar :: (Fractional value, Eq value) => VarRef world value -> Equation world value -> Expression world value
-excludeVar v ex = (econst $ (-1) / c) * (Expression $ filter (not . sameVar v) $ unExpression $ unEquation ex)
-    where c = coefficient v ex
+excludeVar v eq = (econst $ (-1) / c) * (over terms (filter (not . sameVar v)) $ eq ^. expression)
+    where c = coefficient v eq
 
 -- Replace all occurrences of a variable with an expression
+-- replaceVar x (2 * y) (x + y =:= 3) = (2 * y + y =:= 3)
 replaceVar :: (Fractional value, Eq value) => VarRef world value -> Expression world value -> Equation world value -> Equation world value
-replaceVar v replacement ex = Equation $ ((econst c * replacement) +) $ Expression $ filter (not . sameVar v) $ unExpression $ unEquation ex
-    where c = coefficient v ex
+replaceVar v replacement eq = over expression (((econst c * replacement) +) . over terms (filter (not . sameVar v))) eq
+    where c = coefficient v eq
