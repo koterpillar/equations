@@ -20,15 +20,20 @@ data Playground = Playground { _sheep :: Float
 makeLenses ''Playground
 
 test_solveLinear = do
-    let equations = [ evar sheep + evar cows =:= 10
-                    , evar cows + evar chicken =:= 15
-                    , evar chicken + evar sheep =:= 20
+    let equations = [ evar sheep + evar cows =:= 20
+                    , evar cows + evar chicken =:= 30
+                    , evar chicken + evar sheep =:= 40
                     ]
 
     -- TODO: the initial state is meaningless
     let playground = Playground 0 0 0
     let solution = execState (solveLinear equations) playground
 
-    solution ^. sheep + solution ^. cows @?= 10
-    solution ^. cows + solution ^. chicken @?= 15
-    solution ^. chicken + solution ^. sheep @?= 20
+    solution ^. sheep + solution ^. cows @?= 20
+    solution ^. cows + solution ^. chicken @?= 30
+    solution ^. chicken + solution ^. sheep @?= 40
+
+    -- Actual solution
+    solution ^. chicken @?= 25
+    solution ^. sheep @?= 15
+    solution ^. cows @?= 5
