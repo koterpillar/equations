@@ -17,7 +17,7 @@ data VarRef world value = VarRef { vrVar :: Lens' world value
                                  , vrWorld :: world
                                  }
 
-instance (Eq value, Fractional value) => Eq (VarRef world value) where
+instance (Eq value, Num value) => Eq (VarRef world value) where
     a == b = w1 ^. vb == 1 && w2 ^. vb == 2
         where w1 = set va 1 (vrWorld a)
               w2 = set va 2 (vrWorld a)
@@ -33,7 +33,7 @@ instance (Eq value, Fractional value) => Eq (VarRef world value) where
 
 -- Extract all the variables from a set of equations
 -- Needs an instance of world to compare, etc.
-extractVars :: (Eq value, Fractional value) => world -> [Equation world value] -> [VarRef world value]
+extractVars :: (Eq value, Num value) => world -> [Equation world value] -> [VarRef world value]
 extractVars w = nub . execWriter . mapM_ (extractVars' w)
 
 extractVars' :: world -> Equation world value -> Writer [VarRef world value] ()
@@ -45,7 +45,7 @@ extractVars'' w (Variable _ v) = tell [VarRef v w]
 
 -- Calculate the total coefficient for the given variable
 -- e.g. coefficient x (x + 2 * x =:= 0) === 3
-coefficient :: Fractional value => VarRef world value -> Equation world value -> value
+coefficient :: Num value => VarRef world value -> Equation world value -> value
 coefficient var eq = value w2 ex - value w1 ex
     where ex = eq ^. expression
           w1 = set v 1 w
@@ -54,7 +54,7 @@ coefficient var eq = value w2 ex - value w1 ex
           w = vrWorld var
 
 -- Calculate the value of an expression given the world
-value :: Fractional value => world -> Expression world value -> value
+value :: Num value => world -> Expression world value -> value
 value w = sum . map (termValue w) . (^. terms)
     where termValue _ (Constant c) = c
           termValue w (Variable c v) = c * w ^. v
@@ -88,7 +88,7 @@ solveAgainst vs (eq:eqs) = do
             return res
 
 -- Find a variable in an equation with a nonzero coefficient
-findVar :: (Fractional value, Eq value) => [VarRef world value] -> Equation world value -> Maybe (VarRef world value, [VarRef world value])
+findVar :: (Eq value, Num value) => [VarRef world value] -> Equation world value -> Maybe (VarRef world value, [VarRef world value])
 findVar [] eq = Nothing
 findVar (v:vs) eq = case coefficient v eq of
     0 -> do
@@ -97,19 +97,19 @@ findVar (v:vs) eq = case coefficient v eq of
     _ -> Just (v, vs)
 
 -- Is the variable (Term) the same as a given VarRef?
-sameVar :: (Eq value, Fractional value) => VarRef world value -> Term world value -> Bool
+sameVar :: (Eq value, Num value) => VarRef world value -> Term world value -> Bool
 sameVar v (Constant _) = False
 sameVar v (Variable _ v') = v == VarRef v' (vrWorld v)
 
 -- For a given equation, an expression that is equal to the value of the given
 -- variable but does not include it
 -- excludeVar x (2 * x + 3 * y =:= 5) = 2.5 - 1.5 * y
-excludeVar :: (Fractional value, Eq value) => VarRef world value -> Equation world value -> Expression world value
+excludeVar :: (Eq value, Fractional value) => VarRef world value -> Equation world value -> Expression world value
 excludeVar v eq = (econst $ (-1) / c) * (over terms (filter (not . sameVar v)) $ eq ^. expression)
     where c = coefficient v eq
 
 -- Replace all occurrences of a variable with an expression
 -- replaceVar x (2 * y) (x + y =:= 3) = (2 * y + y =:= 3)
-replaceVar :: (Fractional value, Eq value) => VarRef world value -> Expression world value -> Equation world value -> Equation world value
+replaceVar :: (Eq value, Num value) => VarRef world value -> Expression world value -> Equation world value -> Equation world value
 replaceVar v replacement eq = over expression (((econst c * replacement) +) . over terms (filter (not . sameVar v))) eq
     where c = coefficient v eq
