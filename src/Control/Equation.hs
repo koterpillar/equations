@@ -5,7 +5,8 @@ module Control.Equation (
     (=:=),
     evar,
     solveLinear,
+    SolutionStatus(..),
 ) where
 
-import Control.Equation.Solve (solveLinear)
+import Control.Equation.Solve (solveLinear, SolutionStatus(..))
 import Control.Equation.Types
