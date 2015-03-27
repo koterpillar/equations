@@ -1,0 +1,19 @@
+language: haskell
+
+ghc:
+  - 7.8
+
+install:
+  - cabal install --enable-tests --only-dependencies
+  - cabal configure --enable-tests
+  - cabal build
+
+script:
+  - cabal test
+
+cache:
+  directories:
+    - $HOME/.cabal
+    - $HOME/.ghc
+
+sudo: false
